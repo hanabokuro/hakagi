@@ -15,6 +15,9 @@ import (
 var ruleToGuesser = map[string]guess.GuessOption{
 	"primarykey":     guess.GuessByPrimaryKey(),
 	"tableandcolumn": guess.GuessByTableAndColumn(),
+	"regexp": guess.GuessByRegexp([]guess.ForeignKeyRegexp{
+		guess.NewForeignKeyRegexp("^(foo_id|bar_id)$", "baz", "baz_id"),
+	}),
 }
 
 func main() {
@@ -24,7 +27,7 @@ func main() {
 	dbPort := flag.Int("dbport", 3306, "database port")
 
 	targets := flag.String("targets", "", "analysing target databases(comma-separated)")
-	rules := flag.String("rules", "primarykey,tableandcolumn", "analysing rules(comma-separated)")
+	rules := flag.String("rules", "primarykey,tableandcolumn,regexp", "analysing rules(comma-separated)")
 
 	flag.Parse()
 

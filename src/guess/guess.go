@@ -1,7 +1,7 @@
 package guess
 
 import (
-	"strings"
+	"regexp"
 
 	"github.com/jinzhu/inflection"
 	"github.com/syucream/hakagi/src/constraint"
@@ -15,10 +15,23 @@ const (
 
 type GuessOption func(database.Column, string, database.Column) bool
 
+type ForeignKeyRegexp struct {
+	regexp *regexp.Regexp
+	table  string
+	column string
+}
+
+func NewForeignKeyRegexp(pattern string, table string, column string) ForeignKeyRegexp {
+	return ForeignKeyRegexp{regexp.MustCompile(pattern), table, column}
+}
+
 func isAcceptableAsPrimaryKey(columnType, primaryKeyType string) bool {
-	colIsOk := strings.Index(columnType, "int") != -1
-	pkIsOk := strings.Index(primaryKeyType, "int") != -1
-	return colIsOk && pkIsOk && columnType == primaryKeyType
+	/*
+		colIsOk := strings.Index(columnType, "int") != -1
+		pkIsOk := strings.Index(primaryKeyType, "int") != -1
+		return colIsOk && pkIsOk && columnType == primaryKeyType
+	*/
+	return columnType == primaryKeyType
 }
 
 // Recongnize a column thats same name of other table's primary key is a foreign key
@@ -43,6 +56,19 @@ func GuessByTableAndColumn() GuessOption {
 		}
 
 		return inflection.Plural(i.Name[:cLen-tLen]) == table && pk.Name == idColumn
+	}
+}
+
+func GuessByRegexp(foreignKeyRegexpList []ForeignKeyRegexp) GuessOption {
+	return func(i database.Column, table string, pk database.Column) bool {
+		for _, foreignKeyRegexp := range foreignKeyRegexpList {
+			if table == foreignKeyRegexp.table &&
+				pk.Name == foreignKeyRegexp.column &&
+				foreignKeyRegexp.regexp.MatchString(i.Name) {
+				return true
+			}
+		}
+		return false
 	}
 }
 
